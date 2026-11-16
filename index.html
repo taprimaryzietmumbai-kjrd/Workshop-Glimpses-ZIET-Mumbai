@@ -1,4 +1,3 @@
-```
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -39,13 +38,10 @@
 <input id="wId" class="field wide" placeholder="Workshop ID (leave blank for new)">
 <button id="saveWorkshop" class="btn btn-primary wide">Save Workshop</button>
 <div style="grid-column:1/-1;border-top:1px solid var(--line);margin:5px 0"></div>
-<select id="photoWorkshop" class="field wide"><option value="">Select workshop for photo</option></select>
-<input id="photoCaption" class="field" placeholder="Photo caption">
-<input id="photoUrl" class="field" placeholder="ImgBB direct image URL (https://…)">
-<input id="photoId" class="field wide" placeholder="Photo ID (leave blank for new)">
-<button id="savePhoto" class="btn btn-primary wide">Save Photo</button>
-<input id="deletePhotoId" class="field" placeholder="Photo ID to delete">
-<button id="deletePhoto" class="btn btn-light">Delete Photo</button>
+<select id="photoWorkshop" class="field wide"><option value="">Select workshop for photos</option></select>
+<div class="wide"><div class="small" style="margin-bottom:8px">Add as many direct ImgBB image URLs as needed for the selected workshop. Photo ID and caption are not required.</div><div id="photoUrlList" style="display:grid;gap:8px"><div class="photo-url-row" style="display:flex;gap:8px"><input class="field photo-url" placeholder="Direct image URL (https://i.ibb.co/…)" style="flex:1;min-width:0"><button type="button" class="btn btn-light remove-photo-url" aria-label="Remove URL" disabled>Remove</button></div></div></div>
+<button type="button" id="addPhotoUrl" class="btn btn-light wide">+ Add another photo</button>
+<button id="savePhoto" class="btn btn-primary wide">Save All Photos</button>
 </div><p id="adminStatus" class="small" aria-live="polite"></p></details>
 <div class="footer">Workshop Glimpses 2026 - ZIET Mumbai</div>
 </main>
@@ -73,11 +69,13 @@ async function load(){ $("status").textContent="Loading…";$("gallery").innerHT
 async function post(payload){const r=await fetch(API_URL,{method:"POST",redirect:"follow",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(payload)});const t=await r.text();let j;try{j=JSON.parse(t)}catch{throw new Error("Apps Script response could not be read. Check web-app deployment and browser permissions.")}if(!j.success)throw new Error(j.error||"Request failed");return j.data}
 function adminMessage(s){$("adminStatus").textContent=s}
 $("saveWorkshop").onclick=async()=>{try{const token=$("token").value;if(!token)throw new Error("Enter admin token.");const record={"Workshop ID":$("wId").value.trim(),"Workshop Title":$("wTitle").value.trim(),"Duration":$("wDuration").value.trim(),"Start Date":parseDDMMYYYY($("wStart").value),"End Date":parseDDMMYYYY($("wEnd").value),"Region":$("wRegion").value.trim(),"Status":$("wStatus").value};if(!record["Workshop Title"])throw new Error("Workshop title is required.");await post({action:"saveWorkshop",token,record});adminMessage("Workshop saved. Refreshing gallery…");await load()}catch(e){adminMessage(e.message)}};
-$("savePhoto").onclick=async()=>{try{const token=$("token").value;if(!token)throw new Error("Enter admin token.");const url=$("photoUrl").value.trim();if(!/^https?:\/\//i.test(url))throw new Error("Enter a valid direct ImgBB URL.");const record={"Photo ID":$("photoId").value.trim(),"Workshop ID":$("photoWorkshop").value,"Photo Caption":$("photoCaption").value.trim(),"ImgBB Direct URL":url};if(!record["Workshop ID"])throw new Error("Select a workshop.");await post({action:"savePhoto",token,record});adminMessage("Photo saved. Refreshing gallery…");await load()}catch(e){adminMessage(e.message)}};
+function addPhotoUrlRow(){const row=document.createElement("div");row.className="photo-url-row";row.style.cssText="display:flex;gap:8px";row.innerHTML='<input class="field photo-url" placeholder="Direct image URL (https://i.ibb.co/…)" style="flex:1;min-width:0"><button type="button" class="btn btn-light remove-photo-url">Remove</button>';$("photoUrlList").appendChild(row);updatePhotoRemoveButtons()}
+function updatePhotoRemoveButtons(){const rows=[...document.querySelectorAll(".photo-url-row")];rows.forEach(row=>{const b=row.querySelector(".remove-photo-url");b.disabled=rows.length===1;b.onclick=()=>{row.remove();updatePhotoRemoveButtons()}})}
+$("addPhotoUrl").onclick=addPhotoUrlRow;
+$("savePhoto").onclick=async()=>{try{const token=$("token").value;if(!token)throw new Error("Enter admin token.");const wid=$("photoWorkshop").value;if(!wid)throw new Error("Select a workshop.");const urls=[...document.querySelectorAll(".photo-url")].map(x=>x.value.trim()).filter(Boolean);if(!urls.length)throw new Error("Enter at least one direct image URL.");if(urls.some(u=>!/^https?:\\/\\//i.test(u)))throw new Error("Every photo URL must begin with http:// or https://.");let saved=0;for(const url of urls){const record={"Photo ID":"","Workshop ID":wid,"Photo Caption":"","ImgBB Direct URL":url};await post({action:"savePhoto",token,record});saved++}adminMessage(saved+" photo(s) saved. Refreshing gallery…");$("photoUrlList").innerHTML='<div class="photo-url-row" style="display:flex;gap:8px"><input class="field photo-url" placeholder="Direct image URL (https://i.ibb.co/…)" style="flex:1;min-width:0"><button type="button" class="btn btn-light remove-photo-url" aria-label="Remove URL" disabled>Remove</button></div>';await load()}catch(e){adminMessage(e.message)}};
 $("deletePhoto").onclick=async()=>{try{const token=$("token").value,id=$("deletePhotoId").value.trim();if(!token||!id)throw new Error("Enter admin token and Photo ID.");await post({action:"deletePhoto",token,actionType:"deletePhoto",id});adminMessage("Delete request sent. Refreshing…");await load()}catch(e){adminMessage(e.message)}};
 $("search").addEventListener("input",render);$("year").addEventListener("change",render);$("region").addEventListener("change",render);$("refresh").onclick=load;$("closeModal").onclick=()=>$("workshopModal").classList.remove("open");$("workshopModal").onclick=e=>{if(e.target===$("workshopModal"))$("workshopModal").classList.remove("open")};$("closeLightbox").onclick=()=>$("lightbox").classList.remove("open");$("lightbox").onclick=e=>{if(e.target===$("lightbox"))$("lightbox").classList.remove("open")};if(window.flatpickr){flatpickr("#wStart",{dateFormat:"d/m/Y",allowInput:true});flatpickr("#wEnd",{dateFormat:"d/m/Y",allowInput:true});}
 load();
 </script>
 </body>
 </html>
-```
